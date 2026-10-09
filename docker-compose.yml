@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:18
+    restart: unless-stopped
+    volumes:
+      - ./data/db:/var/lib/postgresql
+    ports:
+      - 5432:5432
+
+    environment:
+      - POSTGRES_DB=storefrontdevelopment
+      - POSTGRES_USER=testuser
+      - POSTGRES_PASSWORD=postgres
+
+  adminer:
+    image: adminer
+    restart: unless-stopped
+    ports:
+      - 8080:8080
