@@ -20,4 +20,15 @@ model User{
   lastName String @db.VarChar(50)
   email String @unique @db.VarChar(254)
   passwordHash String
+
+  sessions Session[]
+}
+
+model Session{
+  id String @id @default(uuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete:Cascade)
+  tokenHash String @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }

@@ -5,6 +5,7 @@ import { ConfigService } from "@nestjs/config";
 import { AuthController } from "@/auth/auth.controller.js";
 import { AuthService } from "@/auth/auth.service.js";
 import { UserModule } from "@/user/user.module.js";
+import { ACCESS_TOKEN_TTL_SECONDS } from "./auth.constants.js";
 
 @Module({
   imports: [
@@ -14,7 +15,7 @@ import { UserModule } from "@/user/user.module.js";
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.getOrThrow<string>("JWT_SECRET"),
-        signOptions: { expiresIn: "1h" },
+        signOptions: { expiresIn: ACCESS_TOKEN_TTL_SECONDS },
       }),
     }),
   ],

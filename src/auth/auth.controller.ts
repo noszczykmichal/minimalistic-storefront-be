@@ -1,9 +1,27 @@
-import { Controller } from "@nestjs/common";
-import { Post, Body } from "@nestjs/common";
+import {
+  Controller,
+  HttpCode,
+  Res,
+  UnauthorizedException,
+  Post,
+  Body,
+  Req,
+} from "@nestjs/common";
+import type { CookieOptions, Request, Response } from "express";
 import { CreateUserDto } from "@/user/dto/create-user.dto.js";
 import { UserService } from "@/user/user.service.js";
 import { CredentialsDto } from "@/auth/dto/credentials.dto.js";
 import { AuthService } from "@/auth/auth.service.js";
+import { REFRESH_TTL_MS } from "./auth.constants.js";
+
+const SESSION_COOKIE = "__session";
+
+const cookieOptions: CookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax",
+  path: "/",
+};
 
 @Controller("auth")
 export class AuthController {
@@ -13,11 +31,56 @@ export class AuthController {
   ) {}
 
   @Post("login")
-  async login(@Body() credentialsDto: CredentialsDto) {
-    return await this.authService.login(
-      credentialsDto.email,
-      credentialsDto.password,
-    );
+  @HttpCode(200)
+  async login(
+    @Body() credentialsDto: CredentialsDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { accessToken, refreshToken, user, accessTokenExpiresAt } =
+      await this.authService.login(
+        credentialsDto.email,
+        credentialsDto.password,
+      );
+
+    res.cookie(SESSION_COOKIE, refreshToken, {
+      ...cookieOptions,
+      maxAge: REFRESH_TTL_MS,
+    });
+
+    return { accessToken, user, accessTokenExpiresAt };
+  }
+
+  @Post("refresh")
+  @HttpCode(200)
+  async refresh(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const token = req.cookies?.[SESSION_COOKIE];
+    if (!token) {
+      throw new UnauthorizedException();
+    }
+
+    const { accessToken, refreshToken, user, accessTokenExpiresAt } =
+      await this.authService.refresh(token);
+    res.cookie(SESSION_COOKIE, refreshToken, {
+      ...cookieOptions,
+      maxAge: REFRESH_TTL_MS,
+    });
+
+    return { accessToken, user, accessTokenExpiresAt };
+  }
+
+  @Post("logout")
+  @HttpCode(200)
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const token = req.cookies?.[SESSION_COOKIE];
+    if (token) {
+      await this.authService.logout(token);
+    }
+    res.clearCookie(SESSION_COOKIE, cookieOptions);
+
+    return { message: "Logout" };
   }
 
   @Post("signup")
