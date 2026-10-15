@@ -40,7 +40,7 @@ Required env vars (`.env`, loaded by `@nestjs/config` and by the Prisma config v
 - **Global `ValidationPipe`** with `whitelist`, `forbidNonWhitelisted`, `transform` — DTOs (class-validator + class-transformer) define the accepted request shape; unknown fields are rejected. DTOs normalize input (trim, lowercase email) via `@Transform`.
 - **Auth flow** (`src/auth/`):
   - `POST /auth/signup` → `UserService.create` (bcrypt hash; unique-email violation `P2002` mapped to a generic 400).
-  - `POST /auth/login` returns a short-lived JWT access token (15 min, `JwtModule` registered globally) in the body, and sets an opaque refresh token in the httpOnly `__session` cookie.
+  - `POST /auth/login` returns a short-lived JWT access token (5 min, `JwtModule` registered globally) in the body, and sets an opaque refresh token in the httpOnly `__session` cookie.
   - Refresh tokens are random bytes stored only as SHA-256 hashes in the `Session` table (7-day TTL). `POST /auth/refresh` rotates the token: deletes the old session and creates a new one inside a transaction. `POST /auth/logout` deletes the session and clears the cookie.
   - Login compares against a dummy bcrypt hash when the user doesn't exist to avoid user-enumeration timing differences.
   - TTLs and bcrypt rounds live in `src/auth/auth.constants.ts`.

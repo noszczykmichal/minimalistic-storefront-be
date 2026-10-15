@@ -15,7 +15,6 @@ import { AuthService } from "@/auth/auth.service.js";
 import { REFRESH_TTL_MS, SESSION_COOKIE } from "./auth.constants.js";
 import {
   ApiTags,
-  ApiOkResponse,
   ApiUnauthorizedResponse,
   ApiCookieAuth,
   ApiCreatedResponse,
@@ -40,17 +39,14 @@ export class AuthController {
     private readonly authService: AuthService,
   ) {}
 
+  /** Sets the session cookie */
   @Post("login")
   @HttpCode(200)
-  @ApiOkResponse({
-    type: SessionResponseDto,
-    description: "Sets the session cookie",
-  })
   @ApiUnauthorizedResponse({ description: "Invalid email or password" })
   async login(
     @Body() credentialsDto: CredentialsDto,
     @Res({ passthrough: true }) res: Response,
-  ) {
+  ): Promise<SessionResponseDto> {
     const { accessToken, refreshToken, user, accessTokenExpiresAt } =
       await this.authService.login(
         credentialsDto.email,
@@ -65,18 +61,15 @@ export class AuthController {
     return { accessToken, user, accessTokenExpiresAt };
   }
 
+  /** Rotates the session cookie */
   @Post("refresh")
   @HttpCode(200)
   @ApiCookieAuth()
-  @ApiOkResponse({
-    type: SessionResponseDto,
-    description: "Rotates the session cookie",
-  })
   @ApiUnauthorizedResponse({ description: "Missing or invalid session cookie" })
   async refresh(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
-  ) {
+  ): Promise<SessionResponseDto> {
     const token = req.cookies?.[SESSION_COOKIE];
     if (!token) {
       throw new UnauthorizedException();
@@ -92,14 +85,14 @@ export class AuthController {
     return { accessToken, user, accessTokenExpiresAt };
   }
 
+  /** Clears the session cookie */
   @Post("logout")
   @HttpCode(200)
   @ApiCookieAuth()
-  @ApiOkResponse({
-    type: LogoutResponseDto,
-    description: "Clears the session cookie",
-  })
-  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+  async logout(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<LogoutResponseDto> {
     const token = req.cookies?.[SESSION_COOKIE];
     if (token) {
       await this.authService.logout(token);
