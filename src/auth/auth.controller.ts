@@ -12,9 +12,18 @@ import { CreateUserDto } from "@/user/dto/create-user.dto.js";
 import { UserService } from "@/user/user.service.js";
 import { CredentialsDto } from "@/auth/dto/credentials.dto.js";
 import { AuthService } from "@/auth/auth.service.js";
-import { REFRESH_TTL_MS } from "./auth.constants.js";
-
-const SESSION_COOKIE = "__session";
+import { REFRESH_TTL_MS, SESSION_COOKIE } from "./auth.constants.js";
+import {
+  ApiTags,
+  ApiOkResponse,
+  ApiUnauthorizedResponse,
+  ApiCookieAuth,
+  ApiCreatedResponse,
+} from "@nestjs/swagger";
+import {
+  LogoutResponseDto,
+  SessionResponseDto,
+} from "./dto/session-response.dto.js";
 
 const cookieOptions: CookieOptions = {
   httpOnly: true,
@@ -23,6 +32,7 @@ const cookieOptions: CookieOptions = {
   path: "/",
 };
 
+@ApiTags("auth")
 @Controller("auth")
 export class AuthController {
   constructor(
@@ -32,6 +42,11 @@ export class AuthController {
 
   @Post("login")
   @HttpCode(200)
+  @ApiOkResponse({
+    type: SessionResponseDto,
+    description: "Sets the session cookie",
+  })
+  @ApiUnauthorizedResponse({ description: "Invalid email or password" })
   async login(
     @Body() credentialsDto: CredentialsDto,
     @Res({ passthrough: true }) res: Response,
@@ -52,6 +67,12 @@ export class AuthController {
 
   @Post("refresh")
   @HttpCode(200)
+  @ApiCookieAuth()
+  @ApiOkResponse({
+    type: SessionResponseDto,
+    description: "Rotates the session cookie",
+  })
+  @ApiUnauthorizedResponse({ description: "Missing or invalid session cookie" })
   async refresh(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
@@ -73,6 +94,11 @@ export class AuthController {
 
   @Post("logout")
   @HttpCode(200)
+  @ApiCookieAuth()
+  @ApiOkResponse({
+    type: LogoutResponseDto,
+    description: "Clears the session cookie",
+  })
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const token = req.cookies?.[SESSION_COOKIE];
     if (token) {
@@ -84,6 +110,7 @@ export class AuthController {
   }
 
   @Post("signup")
+  @ApiCreatedResponse({ description: "User created" })
   async createUser(@Body() createUserDto: CreateUserDto) {
     await this.userService.create(createUserDto);
   }
