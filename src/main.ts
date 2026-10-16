@@ -15,12 +15,12 @@ async function bootstrap() {
     .addCookieAuth(SESSION_COOKIE)
     .build();
 
+  configureApp(app);
+
   if (process.env.NODE_ENV !== "production") {
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup("docs", app, document);
   }
-
-  configureApp(app);
 
   await app.listen(process.env.PORT ?? 8000);
 }

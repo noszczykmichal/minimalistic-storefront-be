@@ -17,4 +17,6 @@ export function configureApp(app: INestApplication) {
       transform: true,
     }),
   );
+
+  app.setGlobalPrefix("api");
 }

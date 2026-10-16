@@ -47,7 +47,7 @@ describe("POST /auth/signup (e2e)", () => {
 
     const res = await t
       .api()
-      .post("/auth/signup")
+      .post("/api/auth/signup")
       .send({ ...validUser, email })
       .expect(400);
 
@@ -63,7 +63,7 @@ describe("POST /auth/signup (e2e)", () => {
   ])("rejects a payload with %s", async (_, overrides) => {
     const res = await t
       .api()
-      .post("/auth/signup")
+      .post("/api/auth/signup")
       .send({ ...validUser, ...overrides })
       .expect(400);
 

@@ -28,7 +28,7 @@ describe("POST /auth/logout (e2e)", () => {
 
     const res = await t
       .api()
-      .post("/auth/logout")
+      .post("/api/auth/logout")
       .set("Cookie", sessionCookie(refreshToken))
       .expect(200);
 
@@ -40,13 +40,13 @@ describe("POST /auth/logout (e2e)", () => {
 
     await t
       .api()
-      .post("/auth/refresh")
+      .post("/api/auth/refresh")
       .set("Cookie", sessionCookie(refreshToken))
       .expect(401);
   });
 
   it("succeeds and clears the cookie without a session cookie", async () => {
-    const res = await t.api().post("/auth/logout").expect(200);
+    const res = await t.api().post("/api/auth/logout").expect(200);
 
     expect(res.body).toEqual({ message: "Logout" });
     expect(getSessionCookie(res).header).toMatch(CLEARED_COOKIE);
@@ -58,14 +58,14 @@ describe("POST /auth/logout (e2e)", () => {
 
     await t
       .api()
-      .post("/auth/logout")
+      .post("/api/auth/logout")
       .set("Cookie", sessionCookie(laptop.refreshToken))
       .expect(200);
 
     await expect(t.prisma.session.count()).resolves.toBe(1);
     await t
       .api()
-      .post("/auth/refresh")
+      .post("/api/auth/refresh")
       .set("Cookie", sessionCookie(phone.refreshToken))
       .expect(200);
   });

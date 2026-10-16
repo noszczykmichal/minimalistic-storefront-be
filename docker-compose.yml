@@ -8,9 +8,9 @@ services:
       - 5432:5432
 
     environment:
-      - POSTGRES_DB=storefrontdevelopment
-      - POSTGRES_USER=testuser
-      - POSTGRES_PASSWORD=postgres
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
 
   adminer:
     image: adminer

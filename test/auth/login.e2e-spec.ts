@@ -92,12 +92,12 @@ describe("POST /auth/login (e2e)", () => {
   it("returns the same 401 for a wrong password and an unknown email", async () => {
     const wrongPassword = await t
       .api()
-      .post("/auth/login")
+      .post("/api/auth/login")
       .send({ email: validUser.email, password: "Wrong1!" })
       .expect(401);
     const unknownEmail = await t
       .api()
-      .post("/auth/login")
+      .post("/api/auth/login")
       .send({ email: "nobody@example.com", password: validUser.password })
       .expect(401);
 
@@ -114,7 +114,7 @@ describe("POST /auth/login (e2e)", () => {
   it("rejects an unknown field", async () => {
     await t
       .api()
-      .post("/auth/login")
+      .post("/api/auth/login")
       .send({ email: validUser.email, password: validUser.password, x: 1 })
       .expect(400);
   });

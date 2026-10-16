@@ -42,7 +42,7 @@ export async function signup(
 ): Promise<Response> {
   return t
     .api()
-    .post("/auth/signup")
+    .post("/api/auth/signup")
     .send({ ...validUser, ...overrides })
     .expect(201);
 }
@@ -51,7 +51,7 @@ export async function login(
   t: TestApp,
   credentials = { email: validUser.email, password: validUser.password },
 ): Promise<LoginResult> {
-  const res = await t.api().post("/auth/login").send(credentials).expect(200);
+  const res = await t.api().post("/api/auth/login").send(credentials).expect(200);
   return {
     res,
     accessToken: res.body.accessToken as string,

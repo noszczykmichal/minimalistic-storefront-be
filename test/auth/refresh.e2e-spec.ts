@@ -10,7 +10,7 @@ describe("POST /auth/refresh (e2e)", () => {
   let t: TestApp;
 
   const refresh = (token?: string) => {
-    const req = t.api().post("/auth/refresh");
+    const req = t.api().post("/api/auth/refresh");
     return token === undefined ? req : req.set("Cookie", sessionCookie(token));
   };
 

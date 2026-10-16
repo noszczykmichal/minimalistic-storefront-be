@@ -29,25 +29,25 @@ describe("App (e2e)", () => {
 
     const first = await t
       .api()
-      .post("/auth/refresh")
+      .post("/api/auth/refresh")
       .set("Cookie", sessionCookie(refreshToken))
       .expect(200);
     const second = await t
       .api()
-      .post("/auth/refresh")
+      .post("/api/auth/refresh")
       .set("Cookie", sessionCookie(getSessionCookie(first).value))
       .expect(200);
     const latest = getSessionCookie(second).value;
 
     await t
       .api()
-      .post("/auth/logout")
+      .post("/api/auth/logout")
       .set("Cookie", sessionCookie(latest))
       .expect(200);
 
     await t
       .api()
-      .post("/auth/refresh")
+      .post("/api/auth/refresh")
       .set("Cookie", sessionCookie(latest))
       .expect(401);
     await expect(t.prisma.session.count()).resolves.toBe(0);
@@ -57,7 +57,7 @@ describe("App (e2e)", () => {
     const preflight = (origin: string) =>
       t
         .api()
-        .options("/auth/login")
+        .options("/api/auth/login")
         .set("Origin", origin)
         .set("Access-Control-Request-Method", "POST");
 
