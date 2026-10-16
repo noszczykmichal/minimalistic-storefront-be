@@ -47,4 +47,4 @@ E2E tests use **`.env.test`** (committed; loaded with override by `test/setup/`)
   - Refresh tokens are random bytes stored only as SHA-256 hashes in the `Session` table (7-day TTL). `POST /auth/refresh` rotates the token: deletes the old session and creates a new one inside a transaction. `POST /auth/logout` deletes the session and clears the cookie.
   - Login compares against a dummy bcrypt hash when the user doesn't exist to avoid user-enumeration timing differences.
   - TTLs and bcrypt rounds live in `src/auth/auth.constants.ts`.
-- `test/app.e2e-spec.ts` is still the Nest starter test (expects `GET /` → "Hello World!"), which no longer exists — it will fail until rewritten.
+- **Tests**: unit specs sit next to the code (`src/**/*.spec.ts`) and construct classes directly with mocked dependencies. E2E specs live in `test/` and boot the full app via `createTestApp()` (`test/helpers/app.ts`, which calls `configureApp`); `test/helpers/auth.ts` has signup/login helpers and session-cookie parsing.
