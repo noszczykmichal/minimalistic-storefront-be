@@ -32,11 +32,14 @@ pnpm prisma migrate dev --name <name> --config prisma7.config.ts
 
 Required env vars (`.env`, loaded by `@nestjs/config` and by the Prisma config via `dotenv`): `DATABASE_URL`, `JWT_SECRET`.
 
+E2E tests use **`.env.test`** (committed; loaded with override by `test/setup/`), which points at the `storefront_test` database. The global setup creates that database if missing and runs `prisma migrate deploy`; it refuses to run unless the database name contains `test`. Files run sequentially (`fileParallelism: false`) because they share one database. Requires `docker compose up -d`.
+
 ## Architecture
 
 - **ESM project**: `"type": "module"` with `nodenext` resolution — relative and alias imports must use the `.js` extension (e.g. `@/auth/auth.service.js`). `@/*` maps to `src/*` (resolved in tests via `vite-tsconfig-paths`). `main.ts` uses top-level `await`.
 - **Prisma client is generated into `src/generated/prisma`** (gitignored; `prisma-client` generator, ESM). Import from `@/generated/prisma/client.js`, not `@prisma/client`. Regenerate after any schema change.
 - **`PrismaService`** (`src/prisma/`) extends `PrismaClient` using the `@prisma/adapter-pg` driver adapter and is provided by a `@Global()` `PrismaModule`. It sets a global `omit: { user: { passwordHash: true } }` — queries that need the hash (e.g. `UserService.findOneWithEmail`) must `select` it explicitly.
+- **`configureApp(app)`** (`src/app.setup.ts`) applies `cookieParser`, CORS and the global `ValidationPipe`; it's called by `main.ts` and must be called by e2e tests too. Swagger setup stays in `main.ts`.
 - **Global `ValidationPipe`** with `whitelist`, `forbidNonWhitelisted`, `transform` — DTOs (class-validator + class-transformer) define the accepted request shape; unknown fields are rejected. DTOs normalize input (trim, lowercase email) via `@Transform`.
 - **Auth flow** (`src/auth/`):
   - `POST /auth/signup` → `UserService.create` (bcrypt hash; unique-email violation `P2002` mapped to a generic 400).
