@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Working preferences
+
+- When asked for a PR summary (or PR description), return it as raw Markdown inside a fenced ` ```markdown ` code block, so it can be copied and pasted into GitHub as-is.
+
 ## Overview
 
 NestJS 12 backend (ESM, TypeScript) for a minimalistic storefront, using Prisma 7 with PostgreSQL. A frontend is expected at `http://localhost:3000` (CORS with credentials is enabled for that origin only); the API listens on `PORT` or `8000`.
