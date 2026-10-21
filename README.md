@@ -39,6 +39,7 @@ The client app lives in a separate repository: **[noszczykmichal/minimalistic-st
 - [PostgreSQL 18](https://www.postgresql.org/), with [Docker Compose](https://docs.docker.com/compose/) and [Adminer](https://www.adminer.org/) for local development
 - Auth: [@nestjs/jwt](https://github.com/nestjs/jwt), [bcryptjs](https://github.com/dcodeIO/bcrypt.js), [cookie-parser](https://github.com/expressjs/cookie-parser)
 - Validation: [class-validator](https://github.com/typestack/class-validator) and [class-transformer](https://github.com/typestack/class-transformer)
+- Rate limiting: [@nestjs/throttler](https://github.com/nestjs/throttler)
 - API docs: [Swagger / OpenAPI](https://docs.nestjs.com/openapi/introduction)
 - Testing: [Vitest](https://vitest.dev/) and [Supertest](https://github.com/ladjs/supertest)
 - Code quality: [oxlint](https://oxc.rs/docs/guide/usage/linter) (type-aware) and [Prettier](https://prettier.io/)
@@ -54,17 +55,20 @@ The client app lives in a separate repository: **[noszczykmichal/minimalistic-st
 6. **Timing-safe login.** When the user doesn't exist, the password is still checked against a dummy hash, so response times don't reveal which emails are registered.
 7. **Strict input validation.** DTOs reject unknown fields and normalise input, for example by trimming whitespace and lowercasing emails.
 8. **Row Level Security** is enabled on the `User` and `Session` tables.
+9. **Rate limiting.** Every route allows 100 requests per minute per IP. Login is limited to 10 attempts per minute, failed ones included, and sign-up to 5 per hour. On Cloud Run the client IP comes from `X-Forwarded-For`, and entries a client could have faked are ignored (see [Deployment](#deployment)).
 
 ## API
 
 All routes are served under the `/api` prefix.
 
-| Method | Route               | Description                                                      |
-| ------ | ------------------- | ---------------------------------------------------------------- |
-| POST   | `/api/auth/signup`  | Create an account (`firstName`, `lastName`, `email`, `password`) |
-| POST   | `/api/auth/login`   | Log in; returns an access token and sets the session cookie      |
-| POST   | `/api/auth/refresh` | Rotate the session cookie and get a new access token             |
-| POST   | `/api/auth/logout`  | End the session and clear the cookie                             |
+| Method | Route               | Description                                                      | Rate limit (per IP) |
+| ------ | ------------------- | ---------------------------------------------------------------- | ------------------- |
+| POST   | `/api/auth/signup`  | Create an account (`firstName`, `lastName`, `email`, `password`) | 5 / hour            |
+| POST   | `/api/auth/login`   | Log in; returns an access token and sets the session cookie      | 10 / minute         |
+| POST   | `/api/auth/refresh` | Rotate the session cookie and get a new access token             | 100 / minute        |
+| POST   | `/api/auth/logout`  | End the session and clear the cookie                             | 100 / minute        |
+
+Over the limit, a route responds with `429 Too Many Requests` and a `Retry-After` header that says how many seconds to wait.
 
 Outside production, interactive Swagger docs are available at [`http://localhost:8000/docs`](http://localhost:8000/docs).
 
