@@ -1,114 +1,134 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Minimalistic Storefront — Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+> REST API for [Minimalistic Storefront](https://github.com/noszczykmichal/minimalistic-storefront), a mock-up of an online shop. This service handles user accounts and authentication.
+> You can check the frontend live demo [_here_](https://minimalistic-storefront.web.app/).
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Table of Contents
 
-## Description
+- [General Info](#general-info)
+- [Frontend](#frontend)
+- [Technologies Used](#technologies-used)
+- [Features](#features)
+- [API](#api)
+- [Setup](#setup)
+- [Testing](#testing)
+- [Deployment](#deployment)
+- [Contact](#contact)
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## General Info
 
-## Project setup
+Minimalistic Storefront started as a frontend-only project. It loads its product catalog from an external GraphQL endpoint. This repository adds a backend of its own, beginning with user sign-up and session-based authentication. The goal is to move more of the shop's logic here over time.
+
+The API is built with NestJS and Prisma on PostgreSQL. It issues short-lived JWT access tokens and keeps the user signed in with rotating refresh tokens stored in an httpOnly cookie.
+
+## Frontend
+
+The client app lives in a separate repository: **[noszczykmichal/minimalistic-storefront](https://github.com/noszczykmichal/minimalistic-storefront)** (React, TypeScript, Vite, Apollo Client, Redux Toolkit).
+
+- Live demo: https://minimalistic-storefront.web.app/
+- In local development the frontend runs at `http://localhost:3000`. This is the only origin the API allows through CORS, with credentials enabled so the session cookie can be sent.
+
+| Home page                                                                                                                         | Login page                                                                                                 |
+| --------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| ![Home page with the product listing](https://raw.githubusercontent.com/noszczykmichal/minimalistic-storefront/main/img/home.png) | ![Login page](https://raw.githubusercontent.com/noszczykmichal/minimalistic-storefront/main/img/login.png) |
+
+## Technologies Used
+
+- [NestJS 12](https://nestjs.com/) and [TypeScript](https://www.typescriptlang.org/) (ESM)
+- [Prisma 7](https://www.prisma.io/) with the [`@prisma/adapter-pg`](https://www.prisma.io/docs/orm/overview/databases/postgresql) driver adapter
+- [PostgreSQL 18](https://www.postgresql.org/), with [Docker Compose](https://docs.docker.com/compose/) and [Adminer](https://www.adminer.org/) for local development
+- Auth: [@nestjs/jwt](https://github.com/nestjs/jwt), [bcryptjs](https://github.com/dcodeIO/bcrypt.js), [cookie-parser](https://github.com/expressjs/cookie-parser)
+- Validation: [class-validator](https://github.com/typestack/class-validator) and [class-transformer](https://github.com/typestack/class-transformer)
+- API docs: [Swagger / OpenAPI](https://docs.nestjs.com/openapi/introduction)
+- Testing: [Vitest](https://vitest.dev/) and [Supertest](https://github.com/ladjs/supertest)
+- Code quality: [oxlint](https://oxc.rs/docs/guide/usage/linter) (type-aware) and [Prettier](https://prettier.io/)
+- Package manager: [pnpm](https://pnpm.io/)
+
+## Features
+
+1. **Sign-up.** Passwords are hashed with bcrypt. A duplicate email returns a generic error, so the response doesn't reveal which addresses are registered.
+2. **Login.** Returns a JWT access token that expires after 5 minutes and sets an opaque refresh token in an httpOnly `__session` cookie that lasts 7 days.
+3. **Refresh-token rotation.** Every refresh replaces the old session with a new one inside a database transaction, so each refresh token works only once.
+4. **Logout.** Deletes the session on the server and clears the cookie.
+5. **Hashed refresh tokens.** The database stores only SHA-256 hashes of refresh tokens, never the tokens themselves.
+6. **Timing-safe login.** When the user doesn't exist, the password is still checked against a dummy hash, so response times don't reveal which emails are registered.
+7. **Strict input validation.** DTOs reject unknown fields and normalise input, for example by trimming whitespace and lowercasing emails.
+8. **Row Level Security** is enabled on the `User` and `Session` tables.
+
+## API
+
+All routes are served under the `/api` prefix.
+
+| Method | Route               | Description                                                      |
+| ------ | ------------------- | ---------------------------------------------------------------- |
+| POST   | `/api/auth/signup`  | Create an account (`firstName`, `lastName`, `email`, `password`) |
+| POST   | `/api/auth/login`   | Log in; returns an access token and sets the session cookie      |
+| POST   | `/api/auth/refresh` | Rotate the session cookie and get a new access token             |
+| POST   | `/api/auth/logout`  | End the session and clear the cookie                             |
+
+Outside production, interactive Swagger docs are available at [`http://localhost:8000/docs`](http://localhost:8000/docs).
+
+## Setup
+
+**Requirements:** Node.js 22+, pnpm, and Docker.
+
+1. Clone the repo and install dependencies:
+
+   ```bash
+   git clone https://github.com/noszczykmichal/minimalistic-storefront-be.git
+   cd minimalistic-storefront-be
+   pnpm install
+   ```
+
+2. Copy `.env.example` to `.env` and fill in the values:
+
+   ```bash
+   POSTGRES_DB=storefront
+   POSTGRES_USER=postgres
+   POSTGRES_PASSWORD=postgres
+   DATABASE_URL=postgresql://postgres:postgres@localhost:5432/storefront
+   JWT_SECRET=<a long random string>
+   ```
+
+3. Start PostgreSQL (port `5432`) and Adminer (port `8080`):
+
+   ```bash
+   docker compose up -d
+   ```
+
+4. Apply the migrations and generate the Prisma client. The Prisma config file has a non-default name, so it must be passed explicitly:
+
+   ```bash
+   pnpm prisma migrate dev --config prisma7.config.ts
+   pnpm prisma generate --config prisma7.config.ts
+   ```
+
+5. Start the API in watch mode. It listens on `PORT`, or on `8000` if `PORT` isn't set:
+
+   ```bash
+   pnpm start:dev
+   ```
+
+6. Optionally, run the [frontend](https://github.com/noszczykmichal/minimalistic-storefront) on `http://localhost:3000`.
+
+## Testing
 
 ```bash
-$ pnpm install
+pnpm test        # unit tests (src/**/*.spec.ts)
+pnpm test:e2e    # e2e tests (test/**/*.e2e-spec.ts)
+pnpm test:cov    # unit tests with coverage
 ```
 
-## Compile and run the project
-
-```bash
-# development
-$ pnpm run start
-
-# watch mode
-$ pnpm run start:dev
-
-# production mode
-$ pnpm run start:prod
-```
-
-## Run tests
-
-```bash
-# unit tests
-$ pnpm run test
-
-# e2e tests
-$ pnpm run test:e2e
-
-# test coverage
-$ pnpm run test:cov
-```
+The e2e tests boot the whole app against a separate `storefront_test` database, configured in `.env.test`. The global setup creates that database if it's missing and applies the migrations. As a safeguard, it refuses to run against any database whose name doesn't contain `test`. Docker Compose must be running first.
 
 ## Deployment
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+The API runs on [Google Cloud Run](https://cloud.google.com/run) (`europe-west1`) at **https://storefront-api-498798658012.europe-west1.run.app**. All routes are `POST` endpoints under `/api` (see [API](#api)), so opening the URL in a browser only returns a 404. The live frontend reaches the API through a Firebase Hosting rewrite.
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+The repository includes a multi-stage `Dockerfile` that builds the app and generates the Prisma client, then runs `node dist/main.js` on `node:22-slim`. In production (`NODE_ENV=production`), the session cookie is marked `secure` and Swagger is turned off.
 
-```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
-```
+On Cloud Run, set `TRUST_PROXY=cloud-run` so the rate limiter sees the real client IP. The app then reads it from `X-Forwarded-For`, trusting the extra hop only when it comes from Firebase Hosting (the frontend's `/api` rewrite), so clients calling the `run.app` URL directly can't spoof their IP.
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## Contact
 
-## Observability
-
-In production applications, observability is essential for understanding how your system behaves, detecting issues early, and maintaining reliable performance.
-
-[NestJS Observe](https://observe.nestjs.com) automatically instruments your NestJS application, giving you deep visibility into your system with minimal setup:
-
-- **Distributed tracing:** Follow requests across services and understand how they flow through your system.
-- **Waterfall analysis:** Visualize request execution and identify slow operations, bottlenecks, and unexpected delays.
-- **Performance analysis:** Analyze application performance in real time and quickly pinpoint areas that need optimization.
-- **Metrics:** Track key application and infrastructure metrics to understand system health and performance trends.
-- **Logging:** Centralize and correlate logs with traces and other telemetry to make debugging easier.
-- **Error tracking:** Detect errors quickly and investigate their root causes with the surrounding context.
-- **SLA monitoring:** Track service-level objectives and identify when your application is approaching or exceeding defined thresholds.
-- **Alarms and alerts:** Set up alerts for critical errors, performance degradation, SLA violations, and other anomalies so your team can react quickly.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Auto-instrument your application with [NestJS Observer](https://observer.nestjs.com). Distributed tracing, metrics, and logging made easy. Error tracking and performance monitoring for your NestJS applications.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Built by [@noszczykmichal](https://michalnoszczyk.com/) - feel free to contact me!

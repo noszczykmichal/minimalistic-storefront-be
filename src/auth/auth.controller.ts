@@ -12,13 +12,20 @@ import { CreateUserDto } from "@/user/dto/create-user.dto.js";
 import { UserService } from "@/user/user.service.js";
 import { CredentialsDto } from "@/auth/dto/credentials.dto.js";
 import { AuthService } from "@/auth/auth.service.js";
-import { REFRESH_TTL_MS, SESSION_COOKIE } from "./auth.constants.js";
+import {
+  LOGIN_THROTTLE,
+  REFRESH_TTL_MS,
+  SESSION_COOKIE,
+  SIGNUP_THROTTLE,
+} from "./auth.constants.js";
 import {
   ApiTags,
   ApiUnauthorizedResponse,
   ApiCookieAuth,
   ApiCreatedResponse,
+  ApiTooManyRequestsResponse,
 } from "@nestjs/swagger";
+import { Throttle } from "@nestjs/throttler";
 import {
   LogoutResponseDto,
   SessionResponseDto,
@@ -42,7 +49,9 @@ export class AuthController {
   /** Sets the session cookie */
   @Post("login")
   @HttpCode(200)
+  @Throttle({ default: LOGIN_THROTTLE })
   @ApiUnauthorizedResponse({ description: "Invalid email or password" })
+  @ApiTooManyRequestsResponse({ description: "Too many login attempts" })
   async login(
     @Body() credentialsDto: CredentialsDto,
     @Res({ passthrough: true }) res: Response,
@@ -103,7 +112,9 @@ export class AuthController {
   }
 
   @Post("signup")
+  @Throttle({ default: SIGNUP_THROTTLE })
   @ApiCreatedResponse({ description: "User created" })
+  @ApiTooManyRequestsResponse({ description: "Too many sign-up attempts" })
   async createUser(@Body() createUserDto: CreateUserDto) {
     await this.userService.create(createUserDto);
   }
