@@ -1,6 +1,7 @@
 import { Test } from "@nestjs/testing";
-import type { INestApplication } from "@nestjs/common";
+import type { NestExpressApplication } from "@nestjs/platform-express";
 import { JwtService } from "@nestjs/jwt";
+import { ThrottlerGuard } from "@nestjs/throttler";
 import request from "supertest";
 
 import { AppModule } from "@/app.module.js";
@@ -9,13 +10,23 @@ import { PrismaService } from "@/prisma/prisma.service.js";
 
 export type TestApp = Awaited<ReturnType<typeof createTestApp>>;
 
-/** Boots the full app the same way main.ts does, on a random port. */
-export async function createTestApp() {
-  const moduleRef = await Test.createTestingModule({
+/**
+ * Boots the full app the same way main.ts does, on a random port.
+ * Rate limiting is off unless `throttle` is set, since most specs log in
+ * far more often than the limits allow.
+ */
+export async function createTestApp({ throttle = false } = {}) {
+  const builder = Test.createTestingModule({
     imports: [AppModule],
-  }).compile();
+  });
+  if (!throttle) {
+    builder
+      .overrideProvider(ThrottlerGuard)
+      .useValue({ canActivate: () => true });
+  }
+  const moduleRef = await builder.compile();
 
-  const app: INestApplication = moduleRef.createNestApplication({
+  const app = moduleRef.createNestApplication<NestExpressApplication>({
     logger: false,
   });
   configureApp(app);
