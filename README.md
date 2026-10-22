@@ -25,7 +25,7 @@ The API is built with NestJS and Prisma on PostgreSQL. It issues short-lived JWT
 
 The client app lives in a separate repository: **[noszczykmichal/minimalistic-storefront](https://github.com/noszczykmichal/minimalistic-storefront)** (React, TypeScript, Vite, Apollo Client, Redux Toolkit).
 
-- Live demo: https://minimalistic-storefront.web.app/
+- Live demo: https://minimalistic-storefront.web.app/ (a test account for logging in without signing up is listed in the [frontend README](https://github.com/noszczykmichal/minimalistic-storefront#readme))
 - In local development the frontend runs at `http://localhost:3000`. This is the only origin the API allows through CORS, with credentials enabled so the session cookie can be sent.
 
 | Home page                                                                                                                         | Login page                                                                                                 |
