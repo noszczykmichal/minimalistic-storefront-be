@@ -3,6 +3,12 @@
 > REST API for [Minimalistic Storefront](https://github.com/noszczykmichal/minimalistic-storefront), a mock-up of an online shop. This service handles user accounts and authentication.
 > You can check the frontend live demo [_here_](https://minimalistic-storefront.web.app/).
 
+<p align="center">
+  <a href="https://github.com/noszczykmichal/minimalistic-storefront-be/actions/workflows/ci-cd.yml">
+    <img alt="CI status" src="https://github.com/noszczykmichal/minimalistic-storefront-be/actions/workflows/ci-cd.yml" />
+  </a>
+</p>
+
 ## Table of Contents
 
 - [General Info](#general-info)
@@ -141,13 +147,7 @@ GitHub Actions (`.github/workflows/ci-cd.yml`) runs on every pull request to `ma
 2. **Build** runs `pnpm build` and `docker build`, but only after all three checks above pass.
 3. **Deploy to Cloud Run** runs only on pushes to `main` (that is, after a PR is merged), once the whole pipeline has passed again on the merged code. It builds the image, pushes it to Artifact Registry tagged with the commit SHA, applies pending Prisma migrations and deploys the new image. The service's env vars, secrets and scaling settings stay as they are.
 
-One-time setup:
-
-- **Branch protection.** Under _Settings → Rules → Rulesets_, add a ruleset for `main` that requires a pull request and requires these status checks to pass: `Lint`, `Unit tests`, `E2E tests`, `Build`. Also block force pushes.
-- **GitHub environment `production`.** Under _Settings → Environments_, create it and limit its deployment branches to `main`. Then add:
-  - variables `GCP_PROJECT_ID`, `GCP_ARTIFACT_REPOSITORY` (an Artifact Registry Docker repository in `europe-west1`), `GCP_WORKLOAD_IDENTITY_PROVIDER` (`projects/<number>/locations/global/workloadIdentityPools/<pool>/providers/<provider>`) and `GCP_SERVICE_ACCOUNT`
-  - secret `PROD_DATABASE_URL`, a direct (non-pooled) connection string used for `prisma migrate deploy`. If it's not set, the migration step is skipped.
-- **Google Cloud.** Set up [Workload Identity Federation for GitHub](https://github.com/google-github-actions/auth#workload-identity-federation-through-a-service-account), with the provider restricted to this repository (`attribute.repository == "noszczykmichal/minimalistic-storefront-be"`). Grant the deploy service account `roles/run.admin`, `roles/artifactregistry.writer`, and `roles/iam.serviceAccountUser` on the Cloud Run runtime service account.
+Merging into `main` requires a pull request with all four checks passing. GitHub Actions signs in to Google Cloud through Workload Identity Federation, so no service account keys are stored in the repository.
 
 ## Contact
 
