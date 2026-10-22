@@ -5,7 +5,7 @@
 
 <p align="center">
   <a href="https://github.com/noszczykmichal/minimalistic-storefront-be/actions/workflows/ci-cd.yml">
-    <img alt="CI status" src="https://github.com/noszczykmichal/minimalistic-storefront-be/actions/workflows/ci-cd.yml" />
+    <img alt="CI status" src="https://github.com/noszczykmichal/minimalistic-storefront-be/actions/workflows/ci-cd.yml/badge.svg" />
   </a>
 </p>
 
