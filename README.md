@@ -74,7 +74,7 @@ Outside production, interactive Swagger docs are available at [`http://localhost
 
 ## Setup
 
-**Requirements:** Node.js 22+, pnpm, and Docker.
+**Requirements:** Node.js 24+, pnpm, and Docker.
 
 1. Clone the repo and install dependencies:
 
@@ -129,9 +129,25 @@ The e2e tests boot the whole app against a separate `storefront_test` database, 
 
 The API runs on [Google Cloud Run](https://cloud.google.com/run) (`europe-west1`) at **https://storefront-api-498798658012.europe-west1.run.app**. All routes are `POST` endpoints under `/api` (see [API](#api)), so opening the URL in a browser only returns a 404. The live frontend reaches the API through a Firebase Hosting rewrite.
 
-The repository includes a multi-stage `Dockerfile` that builds the app and generates the Prisma client, then runs `node dist/main.js` on `node:22-slim`. In production (`NODE_ENV=production`), the session cookie is marked `secure` and Swagger is turned off.
+The repository includes a multi-stage `Dockerfile` that builds the app and generates the Prisma client, then runs `node dist/main.js` on `node:24-slim`. In production (`NODE_ENV=production`), the session cookie is marked `secure` and Swagger is turned off.
 
 On Cloud Run, set `TRUST_PROXY=cloud-run` so the rate limiter sees the real client IP. The app then reads it from `X-Forwarded-For`, trusting the extra hop only when it comes from Firebase Hosting (the frontend's `/api` rewrite), so clients calling the `run.app` URL directly can't spoof their IP.
+
+### CI/CD
+
+GitHub Actions (`.github/workflows/ci-cd.yml`) runs on every pull request to `main` and on every push to `main`:
+
+1. **Lint**, **Unit tests** and **E2E tests** run in parallel. The e2e job uses a Postgres 18 service container that matches `.env.test`.
+2. **Build** runs `pnpm build` and `docker build`, but only after all three checks above pass.
+3. **Deploy to Cloud Run** runs only on pushes to `main` (that is, after a PR is merged), once the whole pipeline has passed again on the merged code. It builds the image, pushes it to Artifact Registry tagged with the commit SHA, applies pending Prisma migrations and deploys the new image. The service's env vars, secrets and scaling settings stay as they are.
+
+One-time setup:
+
+- **Branch protection.** Under _Settings → Rules → Rulesets_, add a ruleset for `main` that requires a pull request and requires these status checks to pass: `Lint`, `Unit tests`, `E2E tests`, `Build`. Also block force pushes.
+- **GitHub environment `production`.** Under _Settings → Environments_, create it and limit its deployment branches to `main`. Then add:
+  - variables `GCP_PROJECT_ID`, `GCP_ARTIFACT_REPOSITORY` (an Artifact Registry Docker repository in `europe-west1`), `GCP_WORKLOAD_IDENTITY_PROVIDER` (`projects/<number>/locations/global/workloadIdentityPools/<pool>/providers/<provider>`) and `GCP_SERVICE_ACCOUNT`
+  - secret `PROD_DATABASE_URL`, a direct (non-pooled) connection string used for `prisma migrate deploy`. If it's not set, the migration step is skipped.
+- **Google Cloud.** Set up [Workload Identity Federation for GitHub](https://github.com/google-github-actions/auth#workload-identity-federation-through-a-service-account), with the provider restricted to this repository (`attribute.repository == "noszczykmichal/minimalistic-storefront-be"`). Grant the deploy service account `roles/run.admin`, `roles/artifactregistry.writer`, and `roles/iam.serviceAccountUser` on the Cloud Run runtime service account.
 
 ## Contact
 

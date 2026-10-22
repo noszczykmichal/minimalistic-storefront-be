@@ -21,6 +21,7 @@ vitest.config.e2e.ts
 # tooling, editor, AI assistants
 
 .git
+.github
 .gitignore
 .gitattributes
 .vscode

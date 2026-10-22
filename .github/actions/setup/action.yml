@@ -1,0 +1,23 @@
+name: Setup
+description: Install Node.js, pnpm and dependencies, then generate the Prisma client.
+
+runs:
+  using: composite
+  steps:
+    # Reads the pnpm version from the "packageManager" field in package.json.
+    - uses: pnpm/action-setup@v4
+
+    - uses: actions/setup-node@v5
+      with:
+        # Same major version as the Dockerfile's runtime image.
+        node-version: 24
+        cache: pnpm
+
+    - name: Install dependencies
+      shell: bash
+      run: pnpm install --frozen-lockfile
+
+    # The client is gitignored, and lint (type-aware), tests and build all import it.
+    - name: Generate Prisma client
+      shell: bash
+      run: pnpm prisma generate --config prisma7.config.ts
