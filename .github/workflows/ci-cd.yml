@@ -1,0 +1,115 @@
+name: CI/CD
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# A new push to a PR cancels its outdated run; runs on main queue up instead,
+# so a deploy is never interrupted halfway.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  REGION: europe-west1
+  SERVICE: storefront-api
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+      - run: pnpm lint
+
+  test-unit:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+      - run: pnpm test
+
+  test-e2e:
+    name: E2E tests
+    runs-on: ubuntu-latest
+    services:
+      # Matches DATABASE_URL in .env.test; the global setup creates
+      # storefront_test and applies the migrations.
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U testuser"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+      - run: pnpm test:e2e
+
+  build:
+    name: Build
+    needs: [lint, test-unit, test-e2e]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+      - run: pnpm build
+      # Catches a broken Dockerfile before it reaches main.
+      - name: Build Docker image
+        run: docker build .
+
+  deploy:
+    name: Deploy to Cloud Run
+    needs: [build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      id-token: write # Workload Identity Federation
+    env:
+      IMAGE: europe-west1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GCP_ARTIFACT_REPOSITORY }}/storefront-api:${{ github.sha }}
+      PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v3
+
+      - name: Build and push image
+        run: |
+          gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+
+      # Runs only when the PROD_DATABASE_URL secret is set. Migrations go first,
+      # so the new revision never starts against an outdated schema.
+      - if: env.PROD_DATABASE_URL != ''
+        uses: ./.github/actions/setup
+      - name: Apply database migrations
+        if: env.PROD_DATABASE_URL != ''
+        run: pnpm prisma migrate deploy --config prisma7.config.ts
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+
+      # Only the image changes; env vars, secrets and scaling settings
+      # (e.g. --max-instances=1) are kept from the current revision.
+      - name: Deploy
+        run: gcloud run deploy "$SERVICE" --image="$IMAGE" --region="$REGION" --quiet
