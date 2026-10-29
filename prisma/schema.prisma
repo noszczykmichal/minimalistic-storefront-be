@@ -22,6 +22,7 @@ model User{
   passwordHash String
 
   sessions Session[]
+  orders Order[]
 }
 
 model Session{
@@ -31,4 +32,39 @@ model Session{
   tokenHash String @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
+}
+
+model Order{
+  id String @id @default(uuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete:Cascade)
+  totalAmount Int
+  currency BillingCurrency 
+  status OrderStatus @default(PENDING)
+  createdAt DateTime @default(now())
+  items OrderItem[]
+}
+
+model OrderItem{
+  id String @id @default(uuid())
+  orderId String
+  order Order @relation(fields: [orderId], references: [id], onDelete:Cascade)
+  productId String
+  quantity Int
+  unitPrice Int
+}
+
+enum OrderStatus{
+  PENDING
+  PAID
+  SHIPPED
+  CANCELLED
+}
+
+enum BillingCurrency {
+  USD
+  GBP
+  AUD
+  JPY
+  RUB
 }

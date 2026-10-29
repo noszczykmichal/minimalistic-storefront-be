@@ -5,6 +5,7 @@ import { ThrottlerGuard, ThrottlerModule, minutes } from "@nestjs/throttler";
 import { AuthModule } from "@/auth/auth.module.js";
 import { PrismaModule } from "./prisma/prisma.module.js";
 import { UserModule } from "@/user/user.module.js";
+import { OrdersModule } from './orders/orders.module.js';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { UserModule } from "@/user/user.module.js";
     AuthModule,
     PrismaModule,
     UserModule,
+    OrdersModule,
   ],
   controllers: [],
   providers: [
