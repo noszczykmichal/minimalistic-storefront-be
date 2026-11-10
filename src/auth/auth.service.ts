@@ -25,6 +25,25 @@ export class AuthService {
     private readonly prisma: PrismaService,
   ) {}
 
+  async validateUser(userEmail: string, password: string) {
+    const user = await this.userService.findOneWithEmail(
+      userEmail.toLowerCase().trim(),
+    );
+
+    const passwordOk = await bcrypt.compare(
+      password,
+      user?.passwordHash ?? DUMMY_HASH,
+    );
+
+    if (!user || !passwordOk) {
+      throw new UnauthorizedException("Invalid email or password");
+    }
+
+    const { passwordHash: _passwordHash, ...safeUser } = user;
+
+    return safeUser;
+  }
+
   private async createSession(
     userId: string,
     db: Prisma.TransactionClient = this.prisma,
@@ -43,17 +62,7 @@ export class AuthService {
   }
 
   async login(email: string, password: string) {
-    const user = await this.userService.findOneWithEmail(
-      email.toLowerCase().trim(),
-    );
-    const passwordOk = await bcrypt.compare(
-      password,
-      user?.passwordHash ?? DUMMY_HASH,
-    );
-
-    if (!user || !passwordOk) {
-      throw new UnauthorizedException("Invalid email or password");
-    }
+    const user = await this.validateUser(email, password);
 
     const accessToken = await this.jwtService.signAsync({
       sub: user.id,

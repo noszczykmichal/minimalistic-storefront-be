@@ -15,7 +15,7 @@ const expectedCookieOptions = {
   httpOnly: true,
   secure: false,
   sameSite: "lax",
-  path: "/",
+  path: "/api/auth",
 };
 
 const createRequest = (cookies?: Record<string, string>) =>

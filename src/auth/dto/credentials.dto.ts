@@ -7,7 +7,7 @@ export class CredentialsDto {
     typeof value === "string" ? value.toLowerCase().trim() : value,
   )
   @MaxLength(254)
-  email: string;
+  email!: string;
 
   @IsString()
   @IsNotEmpty()
