@@ -6,8 +6,6 @@ import {
   signup,
 } from "./helpers/auth.js";
 
-const FRONTEND_ORIGIN = "http://localhost:3000";
-
 describe("App (e2e)", () => {
   let t: TestApp;
 
@@ -51,31 +49,6 @@ describe("App (e2e)", () => {
       .set("Cookie", sessionCookie(latest))
       .expect(401);
     await expect(t.prisma.session.count()).resolves.toBe(0);
-  });
-
-  describe("CORS", () => {
-    const preflight = (origin: string) =>
-      t
-        .api()
-        .options("/api/auth/login")
-        .set("Origin", origin)
-        .set("Access-Control-Request-Method", "POST");
-
-    it("allows the frontend origin with credentials", async () => {
-      const res = await preflight(FRONTEND_ORIGIN).expect(204);
-
-      expect(res.headers["access-control-allow-origin"]).toBe(FRONTEND_ORIGIN);
-      expect(res.headers["access-control-allow-credentials"]).toBe("true");
-    });
-
-    it("does not allow other origins", async () => {
-      const res = await preflight("http://evil.example");
-
-      // A fixed-string origin is always echoed; the browser blocks the mismatch.
-      expect(res.headers["access-control-allow-origin"]).not.toBe(
-        "http://evil.example",
-      );
-    });
   });
 
   it("returns 404 for an unknown route", async () => {

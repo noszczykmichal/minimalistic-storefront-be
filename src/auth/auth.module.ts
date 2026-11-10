@@ -6,9 +6,12 @@ import { AuthController } from "@/auth/auth.controller.js";
 import { AuthService } from "@/auth/auth.service.js";
 import { UserModule } from "@/user/user.module.js";
 import { ACCESS_TOKEN_TTL_SECONDS } from "./auth.constants.js";
+import { PassportModule } from "@nestjs/passport";
+import { JwtStrategy } from "./strategies/jwt-strategy.js";
 
 @Module({
   imports: [
+    PassportModule,
     UserModule,
     JwtModule.registerAsync({
       global: true,
@@ -19,7 +22,7 @@ import { ACCESS_TOKEN_TTL_SECONDS } from "./auth.constants.js";
       }),
     }),
   ],
-  providers: [AuthService],
+  providers: [AuthService, JwtStrategy],
   controllers: [AuthController],
 })
 export class AuthModule {}

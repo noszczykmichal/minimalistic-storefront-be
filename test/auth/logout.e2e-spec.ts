@@ -6,7 +6,8 @@ import {
   signupAndLogin,
 } from "../helpers/auth.js";
 
-const CLEARED_COOKIE = /^__session=; Path=\/; Expires=Thu, 01 Jan 1970/;
+const CLEARED_COOKIE =
+  /^__session=; Path=\/api\/auth; Expires=Thu, 01 Jan 1970/;
 
 describe("POST /auth/logout (e2e)", () => {
   let t: TestApp;

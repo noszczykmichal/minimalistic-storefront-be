@@ -35,7 +35,7 @@ const cookieOptions: CookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   sameSite: "lax",
-  path: "/",
+  path: "/api/auth",
 };
 
 @ApiTags("auth")

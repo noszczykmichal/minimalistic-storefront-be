@@ -3,7 +3,7 @@ import type { NestExpressApplication } from "@nestjs/platform-express";
 import cookieParser from "cookie-parser";
 import { cloudRunTrustProxy } from "@/trust-proxy.js";
 
-/** Middleware, pipes and CORS shared by main.ts and the e2e tests. */
+/** Middleware, pipes and the global prefix shared by main.ts and the e2e tests. */
 export function configureApp(app: NestExpressApplication) {
   // On Cloud Run req.ip would be the proxy's address and the rate limiter
   // would lump all clients together; read the client IP from X-Forwarded-For
@@ -13,11 +13,6 @@ export function configureApp(app: NestExpressApplication) {
   }
 
   app.use(cookieParser());
-
-  app.enableCors({
-    origin: "http://localhost:3000",
-    credentials: true,
-  });
 
   app.useGlobalPipes(
     new ValidationPipe({

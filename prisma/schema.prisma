@@ -32,6 +32,8 @@ model Session{
   tokenHash String @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Order{
@@ -43,6 +45,8 @@ model Order{
   status OrderStatus @default(PENDING)
   createdAt DateTime @default(now())
   items OrderItem[]
+
+  @@index([userId])
 }
 
 model OrderItem{
@@ -51,7 +55,10 @@ model OrderItem{
   order Order @relation(fields: [orderId], references: [id], onDelete:Cascade)
   productId String
   quantity Int
+  attributes Json
   unitPrice Int
+
+  @@index([orderId])
 }
 
 enum OrderStatus{
